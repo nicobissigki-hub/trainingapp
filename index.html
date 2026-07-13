@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0d1014">
+<title>Trainingslog · Nico</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root{
+    --bg:#0d1014; --surface:#161b22; --surface-2:#1d242d; --input:#11161c;
+    --line:#2a323d; --line-soft:#212932;
+    --text:#e8edf2; --dim:#8b97a6; --faint:#5b6674;
+    --warm:#ff7a29; --warm-soft:rgba(255,122,41,.13); --warm-line:rgba(255,122,41,.35);
+    --cool:#33c4b2; --cool-soft:rgba(51,196,178,.12); --cool-line:rgba(51,196,178,.35);
+    --good:#5ad17f;
+    --danger:#ff5470;
+    --r:14px; --rs:10px;
+    --disp:'Space Grotesk',system-ui,sans-serif;
+    --body:'Inter',system-ui,sans-serif;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;padding:0}
+  body{background:var(--bg);color:var(--text);font-family:var(--body);font-size:15px;line-height:1.5;padding-bottom:40px;
+    background-image:radial-gradient(1200px 400px at 80% -10%, rgba(255,122,41,.06), transparent 60%),
+                     radial-gradient(1000px 400px at -10% 10%, rgba(51,196,178,.05), transparent 55%)}
+  h1,h2,h3{font-family:var(--disp);margin:0;font-weight:700;letter-spacing:-.01em}
+  .num{font-family:var(--disp);font-variant-numeric:tabular-nums}
+  button{font-family:var(--body);cursor:pointer;border:none;background:none;color:inherit}
+  input,textarea{font-family:var(--disp);font-variant-numeric:tabular-nums}
+
+  .topbar{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:12px;padding:14px 18px;
+    background:linear-gradient(180deg,rgba(13,16,20,.96),rgba(13,16,20,.82));backdrop-filter:blur(10px);
+    border-bottom:1px solid var(--line-soft);padding-top:max(14px,env(safe-area-inset-top))}
+  .back{width:34px;height:34px;border-radius:9px;background:var(--surface-2);border:1px solid var(--line);
+    display:none;align-items:center;justify-content:center;font-size:18px;flex:0 0 auto;transition:.15s}
+  .back:active{transform:scale(.94)}
+  .brand{display:flex;flex-direction:column;line-height:1.15;flex:1}
+  .brand .t{font-family:var(--disp);font-weight:700;font-size:15px;letter-spacing:.02em}
+  .brand .s{font-size:11px;color:var(--dim);letter-spacing:.04em;text-transform:uppercase}
+  .brand .accent{color:var(--warm)}
+  .sync{font-size:10px;color:var(--faint);font-family:var(--disp);letter-spacing:.05em;text-transform:uppercase;
+    border:1px solid var(--line);border-radius:6px;padding:3px 7px;flex:0 0 auto}
+  .sync.on{color:var(--good);border-color:rgba(90,209,127,.4)}
+
+  .wrap{max-width:640px;margin:0 auto;padding:18px}
+  .view{display:none}
+  .view.active{display:block;animation:fade .25s ease}
+  @keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+  .rota{display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--line);
+    border-radius:12px;padding:11px 14px;font-family:var(--disp);font-size:13px;color:var(--dim)}
+  .rota b{color:var(--text);font-weight:500}
+  .rota .arrow{color:var(--faint)}
+  .lede{color:var(--dim);font-size:13px;margin:10px 2px 6px;line-height:1.55}
+  .grid{display:grid;grid-template-columns:1fr;gap:12px}
+  @media(min-width:520px){.grid{grid-template-columns:1fr 1fr}}
+  .card{position:relative;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);
+    padding:16px 16px 15px;overflow:hidden;transition:.15s;text-align:left;width:100%}
+  .card:active{transform:scale(.985)}
+  .card::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--accent,var(--warm))}
+  .card.cool{--accent:var(--cool)}
+  .card .tag{display:inline-flex;align-items:center;gap:6px;font-family:var(--disp);font-size:10.5px;font-weight:500;
+    letter-spacing:.06em;text-transform:uppercase;color:var(--accent,var(--warm));
+    background:var(--accent-soft,var(--warm-soft));border:1px solid var(--accent-line,var(--warm-line));
+    padding:3px 8px;border-radius:6px;margin-bottom:11px}
+  .card.cool .tag{--accent-soft:var(--cool-soft);--accent-line:var(--cool-line)}
+  .card h3{font-size:19px;margin-bottom:3px}
+  .card .desc{font-size:12.5px;color:var(--dim);line-height:1.45}
+  .card .chev{position:absolute;right:14px;top:16px;color:var(--faint);font-size:15px}
+  .section-label{font-family:var(--disp);font-size:11px;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--faint);margin:24px 4px 12px}
+
+  .s-head h2{font-size:24px}
+  .s-sub{color:var(--dim);font-size:13px;margin-top:3px}
+  .d-purpose{color:var(--dim);font-size:13.5px;margin:10px 2px 0;line-height:1.55}
+  .s-target{display:flex;flex-wrap:wrap;gap:7px;margin:14px 0 4px}
+  .pill{font-family:var(--disp);font-size:12px;background:var(--surface-2);border:1px solid var(--line);
+    color:var(--dim);padding:5px 10px;border-radius:8px}
+  .pill b{color:var(--text);font-weight:500}
+  .tabs{display:flex;gap:4px;margin:16px 0 4px;background:var(--surface);border:1px solid var(--line);
+    border-radius:11px;padding:4px}
+  .tab{flex:1;padding:8px;border-radius:8px;font-family:var(--disp);font-size:13px;color:var(--dim);text-align:center;transition:.15s}
+  .tab.on{background:var(--surface-2);color:var(--text)}
+
+  .daterow{display:flex;align-items:center;gap:10px;margin:14px 0 2px;background:var(--surface);
+    border:1px solid var(--line);border-radius:var(--rs);padding:11px 14px}
+  .daterow label{font-family:var(--disp);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--faint)}
+  .daterow input{background:var(--input);border:1px solid var(--line);border-radius:9px;color:var(--text);
+    padding:8px 10px;font-size:14px;color-scheme:dark}
+  .daterow input:focus{outline:none;border-color:var(--warm)}
+
+  .wu{background:var(--surface);border:1px solid var(--line);border-left:3px solid var(--cool);
+    border-radius:var(--rs);padding:11px 14px;margin:14px 0 4px;font-size:12.5px;color:var(--dim);line-height:1.6}
+  .wu .wut{font-family:var(--disp);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--cool);margin-bottom:4px}
+
+  .ex{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:15px 15px 6px;margin:12px 0}
+  .ex-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:3px}
+  .ex-name{font-family:var(--disp);font-weight:500;font-size:16px;line-height:1.25}
+  .ex-hint-inline{color:var(--warm);font-size:11.5px;font-weight:500;flex:0 0 auto;text-align:right}
+  .ex-meta{display:flex;flex-wrap:wrap;gap:6px 10px;font-size:12px;color:var(--dim);margin:6px 0 4px}
+  .ex-meta .m b{color:var(--text);font-family:var(--disp);font-weight:500}
+  .last{font-size:11.5px;color:var(--faint);margin:2px 0 10px;display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+  .last .lbl{color:var(--faint)}
+
+  .setrow{display:flex;align-items:center;gap:8px;padding:7px 0;border-top:1px solid var(--line-soft)}
+  .setno{font-family:var(--disp);font-size:12px;color:var(--faint);width:30px;flex:0 0 auto}
+  .fields{display:flex;gap:7px;flex:1;flex-wrap:wrap}
+  .field{display:flex;flex-direction:column;gap:3px;flex:1;min-width:0}
+  .field label{font-size:9.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--faint);font-family:var(--disp);padding-left:2px}
+  input.in{background:var(--input);border:1px solid var(--line);border-radius:9px;color:var(--text);
+    padding:10px 9px;font-size:15px;width:100%;text-align:center;transition:.15s;min-width:0}
+  input.in:focus{outline:none;border-color:var(--warm);background:#141b22}
+
+  .checkrow{display:flex;align-items:center;gap:12px;padding:12px 2px;border-top:1px solid var(--line-soft)}
+  .checkrow:first-of-type{border-top:none}
+  .cbox{width:26px;height:26px;border-radius:8px;border:2px solid var(--line);flex:0 0 auto;
+    display:flex;align-items:center;justify-content:center;transition:.15s;background:var(--input)}
+  .cbox.on{background:var(--cool);border-color:var(--cool)}
+  .cbox svg{opacity:0;transform:scale(.5);transition:.15s}
+  .cbox.on svg{opacity:1;transform:none}
+  .checkrow .cx{flex:1;min-width:0}
+  .checkrow .cx .n{font-size:14.5px}
+  .checkrow .cx .d{font-size:11.5px;color:var(--dim)}
+  .checkrow .dose{font-family:var(--disp);font-size:12.5px;color:var(--cool);white-space:nowrap;flex:0 0 auto}
+  .checkrow .chev{color:var(--faint);flex:0 0 auto;font-size:16px;padding:0 2px}
+
+  .cardio-fields{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
+  .cf{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:13px}
+  .cf label{font-size:10px;letter-spacing:.05em;text-transform:uppercase;color:var(--faint);font-family:var(--disp);display:block;margin-bottom:7px}
+  .cf input{background:var(--input);border:1px solid var(--line);border-radius:9px;color:var(--text);padding:11px 8px;font-size:19px;width:100%;text-align:center}
+  .cf input:focus{outline:none;border-color:var(--cool)}
+
+  textarea.note{width:100%;background:var(--input);border:1px solid var(--line);border-radius:11px;color:var(--text);
+    font-family:var(--body);font-size:14px;padding:12px;margin-top:12px;resize:vertical;min-height:64px}
+  textarea.note:focus{outline:none;border-color:var(--cool)}
+
+  .actions{display:flex;gap:10px;margin:22px 0 8px;position:sticky;bottom:14px;z-index:5}
+  .btn{flex:1;padding:15px;border-radius:13px;font-family:var(--disp);font-weight:500;font-size:15px;
+    display:flex;align-items:center;justify-content:center;gap:8px;transition:.15s;box-shadow:0 8px 24px rgba(0,0,0,.4)}
+  .btn:active{transform:scale(.98)}
+  .btn.primary{background:var(--warm);color:#1a0e04}
+  .btn.primary.cool{background:var(--cool);color:#052420}
+  .btn.ghost{background:var(--surface-2);color:var(--text);border:1px solid var(--line);box-shadow:none}
+
+  .toast{position:fixed;left:50%;bottom:26px;transform:translate(-50%,20px);opacity:0;pointer-events:none;
+    background:var(--good);color:#04210f;font-family:var(--disp);font-weight:500;font-size:14px;
+    padding:12px 20px;border-radius:11px;transition:.25s;z-index:50;box-shadow:0 10px 30px rgba(0,0,0,.5)}
+  .toast.show{opacity:1;transform:translate(-50%,0)}
+
+  .hitem{background:var(--surface);border:1px solid var(--line);border-radius:var(--rs);padding:12px 14px;margin:10px 0}
+  .hitem .hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+  .hitem .date{font-family:var(--disp);font-size:13px;color:var(--text)}
+  .hitem .del{font-size:11px;color:var(--faint);padding:4px 8px;border-radius:6px;border:1px solid var(--line-soft)}
+  .hitem .del:active{color:var(--danger);border-color:var(--danger)}
+  .hitem .line{font-size:12.5px;color:var(--dim);padding:2px 0}
+  .hitem .line .k{color:var(--faint)}
+  .empty{color:var(--faint);font-size:13px;text-align:center;padding:40px 20px}
+  .foot{color:var(--faint);font-size:11px;text-align:center;margin-top:34px;line-height:1.6}
+  .foot button{color:var(--dim);text-decoration:underline;font-size:11px}
+
+  /* auth */
+  .auth{max-width:380px;margin:8vh auto 0}
+  .auth h2{font-size:24px;margin-bottom:4px}
+  .auth .sub{color:var(--dim);font-size:13px;margin-bottom:20px}
+  .auth .cf{margin-bottom:10px}
+  .auth .cf input{font-size:15px;text-align:left;font-family:var(--body)}
+  .auth .err{color:var(--danger);font-size:12.5px;margin:8px 2px;min-height:18px}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <button class="back" id="backBtn" aria-label="Zurück">‹</button>
+  <div class="brand">
+    <span class="t">TRAININGS<span class="accent">LOG</span></span>
+    <span class="s" id="crumb">Nico · Meisterschaft</span>
+  </div>
+  <span class="sync" id="syncBadge">lokal</span>
+</div>
+
+<div class="wrap">
+  <!-- AUTH -->
+  <div class="view" id="auth">
+    <div class="auth">
+      <h2>Anmelden</h2>
+      <div class="sub">Mit deinem Konto sind die Trainingsdaten auf allen Geräten verfügbar.</div>
+      <div class="cf"><label>E-Mail</label><input id="authEmail" type="email" autocomplete="email"></div>
+      <div class="cf"><label>Passwort</label><input id="authPass" type="password" autocomplete="current-password"></div>
+      <div class="err" id="authErr"></div>
+      <div class="actions" style="position:static">
+        <button class="btn primary" onclick="doLogin()">Anmelden</button>
+        <button class="btn ghost" onclick="doRegister()">Registrieren</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- HOME -->
+  <div class="view" id="home">
+    <div class="rota">Kraft-Rotation: <b>A</b><span class="arrow">→</span><b>B</b><span class="arrow">→</span><b>C</b><span class="arrow">→</span><b>Deload</b></div>
+    <p class="lede">Wähle die Einheit, die du machst. Ziel-Werte stehen oben, danach trägst du deine echten Zahlen ein.</p>
+    <div id="phaseContent"></div>
+    <p class="foot" id="footInfo"></p>
+  </div>
+
+  <!-- SESSION -->
+  <div class="view" id="session"></div>
+</div>
+
+<div class="toast" id="toast">Gespeichert ✓</div>
+
+<script>
+/* ================================================================
+   SUPABASE-KONFIG — hier deine Werte eintragen (Supabase → Settings → API).
+   Solange leer, läuft die App lokal (localStorage, nur dieses Gerät).
+   ================================================================ */
+const SUPABASE_URL = "https://hewdrcdhuqvahpkkdsjj.supabase.co";        // z.B. "https://abcdefgh.supabase.co"
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhld2RyY2RodXF2YWhwa2tkc2pqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM4NTUyNzgsImV4cCI6MjA5OTQzMTI3OH0.XrLX1MqcxprDayYC2fYgj2E7szhmba-Q3nTLHrdTdXQ";   // der lange "anon public" Key
+
+const CLOUD = !!(SUPABASE_URL && SUPABASE_ANON_KEY);
+const sb = CLOUD ? supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+
+/* ============ ZONEN (Karvonen: HFmax 207, Ruhe 46, HFR 161) ============ */
+const Z = { z1:"127–143", z2:"145–159", z4:"180–190", z5:"191–207" };
+
+/* ============ KRAFT-BAUSTEINE ============ */
+const KM_WARMUP = [
+  "Bike Z1 — 3 Min",
+  "Kettlebell Weight Shift — 2×8/Seite (barfuss)",
+  "Hip Airplane — 2×5/Seite · links zuerst"
+];
+function kmBase(){ return [
+  {id:"squat",  name:"Trap-Bar DL / Back Squat", sets:3, reps:"3", rpe:"7", rest:"2.5 Min", mode:"sets", wlabel:"kg"},
+  {id:"press",  name:"Bankdrücken / Overhead Press", sets:3, reps:"5", rpe:"7", rest:"2 Min", mode:"sets", wlabel:"kg"},
+  {id:"pullup", name:"Klimmzüge (Zusatzgewicht)", sets:3, reps:"5", rpe:"7–8", rest:"2 Min", mode:"sets", wlabel:"Zusatz kg"}
+];}
+function kmTail(){ return [
+  {id:"nordic", name:"Nordic Hamstring Curl", tag:"exzentrisch langsam", sets:2, reps:"4", rpe:"exz.", rest:"90 s", mode:"reps"},
+  {id:"calf",   name:"Wadenheben barfuss (+ Tibialis)", tag:"oben 2 s halten", sets:2, reps:"12 / 15", rpe:"7", rest:"60 s", mode:"sets", wlabel:"kg"},
+  {id:"core",   name:"Pallof + Seitstütz", tag:"links länger", sets:2, reps:"10/S + /S", rpe:"—", rest:"45 s", mode:"check"}
+];}
+
+/* ============ UNITS ============ */
+const UNITS = {
+  /* ---------------- KRAFT ---------------- */
+  strengthA:{ name:"Strength A", cat:"strength", group:"Kraft", day:"Mo · Woche 1", md:"MD+2", dur:"~45–50 Min", type:"strength",
+    desc:"ATG Split Squat + SL Hip Thrust. Mobilitäts-Fokus.", warmup:KM_WARMUP, family:"strength",
+    purpose:"Kraft-Erhalt 2 Tage nach dem Spiel. RPE-Vorgaben einhalten — 2 Wdh im Tank lassen, Technik vor Gewicht. Beine noch schwer? RPE −1 oder Oberkörper-Fokus.",
+    exercises:[...kmBase(),
+      {id:"atg",       name:"ATG Split Squat", tag:"links zuerst · Tiefe > Last", sets:2, reps:"6 / Seite", rpe:"6–7", rest:"90 s", mode:"sets", wlabel:"kg"},
+      {id:"hipthrust", name:"Single-Leg Hip Thrust", tag:"links zuerst", sets:2, reps:"8 / Seite", rpe:"7", rest:"90 s", mode:"sets", wlabel:"kg"},
+      ...kmTail()]},
+  strengthB:{ name:"Strength B", cat:"strength", group:"Kraft", day:"Mo · Woche 2", md:"MD+2", dur:"~45–50 Min", type:"strength",
+    desc:"Lateral Split Squat + SL Hip Thrust. Richtungswechsel-Fokus.", warmup:KM_WARMUP, family:"strength",
+    purpose:"Kraft-Erhalt 2 Tage nach dem Spiel. RPE-Vorgaben einhalten — 2 Wdh im Tank lassen, Technik vor Gewicht. Beine noch schwer? RPE −1 oder Oberkörper-Fokus.",
+    exercises:[...kmBase(),
+      {id:"lateral",   name:"Lateral Split Squat (Goblet)", tag:"links zuerst", sets:2, reps:"8 / Seite", rpe:"6–7", rest:"90 s", mode:"sets", wlabel:"kg"},
+      {id:"hipthrust", name:"Single-Leg Hip Thrust", tag:"links zuerst", sets:2, reps:"8 / Seite", rpe:"7", rest:"90 s", mode:"sets", wlabel:"kg"},
+      ...kmTail()]},
+  strengthC:{ name:"Strength C", cat:"strength", group:"Kraft", day:"Mo · Woche 3", md:"MD+2", dur:"~45–50 Min", type:"strength",
+    desc:"SL RDL + Copenhagen. Posteriore Kette + Adduktoren.", warmup:KM_WARMUP, family:"strength",
+    purpose:"Kraft-Erhalt 2 Tage nach dem Spiel. RPE-Vorgaben einhalten — 2 Wdh im Tank lassen, Technik vor Gewicht. Beine noch schwer? RPE −1 oder Oberkörper-Fokus.",
+    exercises:[...kmBase(),
+      {id:"slrdl", name:"Single-Leg RDL", tag:"links zuerst", sets:2, reps:"8 / Seite", rpe:"7", rest:"90 s", mode:"sets", wlabel:"kg"},
+      {id:"copen", name:"Copenhagen Plank", tag:"links zuerst", sets:2, reps:"20 s / Seite", rpe:"—", rest:"60 s", mode:"check"},
+      ...kmTail()]},
+  strengthD:{ name:"Strength Deload", cat:"strength", group:"Kraft", day:"Mo · Woche 4", md:"MD+2", dur:"~25 Min", type:"strength",
+    desc:"Leichte Woche: nur Hauptübung + Zug, RPE 6.", warmup:KM_WARMUP, family:"strength",
+    purpose:"Jede 4. Woche bewusst leicht — verhindert schleichende Ermüdung über die Saison. Gewichte deutlich unter dem Üblichen lassen.",
+    exercises:[
+      {id:"squat",  name:"Trap-Bar DL / Back Squat", tag:"bewusst leicht", sets:2, reps:"3", rpe:"6", rest:"2 Min", mode:"sets", wlabel:"kg"},
+      {id:"pullup", name:"Klimmzüge (Zusatzgewicht)", tag:"bewusst leicht", sets:2, reps:"3", rpe:"6", rest:"2 Min", mode:"sets", wlabel:"Zusatz kg"}
+    ]},
+
+  /* ---------------- AUSDAUER & SPEED ---------------- */
+  bike:{ name:"Bike", cat:"cardio", group:"Ausdauer & Speed", day:"Mi", md:"MD−3", dur:"~60 Min", type:"cardio",
+    desc:"Aerober Entwickler, impactfrei. Deload: ~30 Min.",
+    purpose:"Dein aerober Haupt-Wochenreiz gegen den 60-Min-Abfall. Sauber in Zone 2 bleiben — kannst du keine ganzen Sätze mehr sprechen, Level runter.",
+    target:[["Dauer","60 Min"],["Puls",Z.z2+" (Z2)"],["Kadenz","80–95 UPM"],["Deload","~30 Min"]],
+    fields:[{k:"duration",label:"Dauer Min",im:"numeric"},{k:"level",label:"Level (Gym)",im:"decimal"},{k:"avgHR",label:"Ø Puls bpm",im:"numeric"},{k:"cadence",label:"Ø Kadenz UPM",im:"numeric"}]},
+  speed:{ name:"Speed Primer", cat:"strength", group:"Ausdauer & Speed", day:"Mi · alle 2–3 Wo statt Bike", dur:"~30 Min", type:"check",
+    desc:"Tempo & Explosivität wach halten. Nur frische Beine.",
+    purpose:"Hält Tempo & Explosivität wach. Nur mit frischen Beinen — sonst wird's Konditionstraining statt Speed. Volle Pausen, jede Wiederholung mit maximalem Einsatz.",
+    sections:[
+      {label:"Warm-up (~12 Min)", items:[
+        {id:"wu1", n:"Dynamisches Aufwärmen", d:"Gelenke mobilisieren, Puls hoch"},
+        {id:"wu2", n:"A- & B-Skips", d:"locker, Technik"},
+        {id:"wu3", n:"3–4 Steigerungsläufe", d:"bis ~80 %"}
+      ]},
+      {label:"Hauptteil", items:[
+        {id:"bj", n:"Broad Jumps", d:"maximal, Qualität — volle Pause", dose:"3×3"},
+        {id:"acc", n:"Beschleunigungen 20 m", d:"@ 90–95 % · Walk-back als Pause", dose:"5×"},
+        {id:"fly", n:"Fliegende 20 m", d:"Steigerungslauf", dose:"2×"}
+      ]}
+    ]},
+  topup:{ name:"Top Up", cat:"strength", group:"Ausdauer & Speed", day:"Sa/So · bei <30 Min / DNP", dur:"~25 Min", type:"check",
+    desc:"Match-Ersatz nach wenig Einsatzzeit.",
+    purpose:"Ersetzt die fehlende Spielbelastung, damit die Spielfitness in Rotationswochen nicht abbaut. Direkt nach dem Spiel oder am Sonntag. Nur wenn du wenig gespielt hast — sonst reicht Recovery.",
+    sections:[
+      {label:"Ablauf", items:[
+        {id:"wu", n:"Warm-up", d:"", dose:"8 Min"},
+        {id:"int", n:"Intervalle @ Z4–5 fussballnah", d:"Antritte, Richtungswechsel · 1 Min locker dazwischen", dose:"6×1 Min"},
+        {id:"spr", n:"Sprints 30 m mit Richtungswechsel", d:"optional", dose:"8–10×"},
+        {id:"cd", n:"Cool-down", d:"", dose:"5 Min"}
+      ]}
+    ]},
+
+  /* ---------------- MOBILITÄT & SPIELTAG ---------------- */
+  recovery:{ name:"Recovery", cat:"cardio", group:"Mobilität & Spieltag", day:"So", md:"MD+1", dur:"~30–40 Min", type:"recovery",
+    desc:"Erholung nach dem Spiel. Kein Leistungsreiz.",
+    purpose:"Durchblutung fördern, Beweglichkeit zurückholen — Ziel sind frische Beine für Montag. Alles locker, ohne Ehrgeiz. Bei <30 Min Einsatz am Sa: stattdessen Top Up.",
+    own:[{id:"flush", n:"Bike / Schwimmen / Gehen locker", d:"15–20 Min · Z1 ("+Z.z1+") · plaudern easy"}],
+    links:["mobility","feet","fasciaball","stretchSo"]},
+  mobility:{ name:"Mobility", cat:"cardio", group:"Mobilität & Spieltag", day:"täglich", dur:"~12–15 Min", type:"check", ohs:true,
+    desc:"Sprunggelenk + BWS. Priorität 1.",
+    purpose:"Deine Priorität 1: Sprunggelenk-Dorsalflexion + thorakale Extension. Immer Test → Arbeit → Re-Test. An Trainings-/Spieltagen die Kurzversion (~8 Min).",
+    sections:[{label:"Übungen", items:[
+      {id:"ohs1", n:"OHS-Test", d:"Ausgangsbild merken", dose:"2–3 Wdh"},
+      {id:"ankle", n:"Banded Ankle Mobilization", d:"Knie über Zehe, kein Valgus", dose:"2×10/S"},
+      {id:"ktw", n:"Knee-to-Wall", d:"Ferse bleibt am Boden", dose:"2×10/S"},
+      {id:"wade", n:"Wadendehnung", d:"gastroc + soleus", dose:"2×30 s/S"},
+      {id:"peanut", n:"BWS-Extension (Peanut/Roller)", d:"steife Segmente", dose:"2×8–10"},
+      {id:"quad", n:"Quadruped Rotation", d:"kontrolliert aufdrehen", dose:"2×8/S"},
+      {id:"proney", n:"Prone Y-T", d:"End-Range 1–2 s halten", dose:"2×8"},
+      {id:"hip", n:"Half-Kneeling Hüftbeuger", d:"Rippen unten", dose:"2×30 s/S"},
+      {id:"ohs2", n:"OHS-Re-Test", d:"besser als am Anfang?", dose:"2–3 Wdh"}
+    ]}]},
+  feet:{ name:"Feet", cat:"cardio", group:"Mobilität & Spieltag", day:"täglich · barfuss", dur:"~4 Min", type:"check",
+    desc:"Fuss- & Zehenkraft. Dein Hauptziel.",
+    purpose:"Starke Füsse entstehen nur über tägliche Frequenz, nicht über einmal viel. Alles barfuss, immer links zuerst. Effekt nach ~6–8 Wochen. Kein zusätzliches Barfuss-Laufen/-Springen.",
+    sections:[{label:"Übungen", items:[
+      {id:"shortfoot", n:"Short Foot", d:"Gewölbe aufspannen, Zehen lang — nicht krallen", dose:"2×8/S"},
+      {id:"bigtoe", n:"Big Toe Raises", d:"nur Grosszehe heben, dann umgekehrt", dose:"2×8/S"},
+      {id:"spread", n:"Zehen spreizen & schliessen", d:"", dose:"2×10"},
+      {id:"balance", n:"Einbeinstand barfuss", d:"links zuerst", dose:"2×30 s/S"}
+    ]}]},
+  activation:{ name:"Activation", cat:"strength", group:"Mobilität & Spieltag", day:"Fr", md:"MD−1", dur:"~20 Min", type:"check",
+    desc:"Aktivierung vor dem Spiel. Potenzieren, nicht ermüden.",
+    purpose:"Nervensystem wecken fürs Spiel — danach solltest du dich frischer fühlen als vorher, sonst war's zu viel. Bewusst kein Konditionstraining. Am Vorabend: 2–3 gelungene Szenen visualisieren.",
+    sections:[
+      {label:"Warm-up (~8 Min)", items:[
+        {id:"wu1", n:"Dynamisches Aufwärmen", d:"Beinpendel, Ausfallschritte, Skips — locker steigern"}
+      ]},
+      {label:"Hauptteil", items:[
+        {id:"acc", n:"Kurze Beschleunigungen 20–30 m", d:"steigernd auf 90 % · volle Gehpause zurück", dose:"4–6×"},
+        {id:"jump", n:"Sprünge", d:"maximal, aber locker — Counter-Movement oder Broad Jump", dose:"3×"},
+        {id:"ball", n:"Ballkontakte", d:"Jonglieren, kurze Pässe — Gefühl holen", dose:"~5 Min"}
+      ]}
+    ]},
+  fasciaball:{ name:"Fascia Ball", cat:"cool", group:"Mobilität & Spieltag", day:"Mi + So", dur:"~5–8 Min", type:"check",
+    desc:"Triggerpunkte mit dem Ball lösen.",
+    purpose:"Schmerzhafte Punkte suchen (Fusssohle, Glutes, Wade, BWS), ~20–40 s draufbleiben bis sie nachlassen. Druck 6–7/10, nicht stechend. Weg von Knochen, Wirbelsäule, Kniekehle.",
+    sections:[{label:"", items:[
+      {id:"done", n:"Fascia Ball gemacht", d:"Fusssohle · Glutes · Wade · BWS"}
+    ]}]},
+  stretchMi:{ name:"Stretching Mi", cat:"cool", group:"Mobilität & Spieltag", day:"Mi · nach Bike", dur:"~8–10 Min", type:"check",
+    desc:"Vordere + seitliche Linie. Gegen den Bürotag.",
+    purpose:"Lange Faszien-Dehnung in Ketten — leicht federnd statt starr verharren, links zuerst. Der Mittwoch-Fokus ist der Gegenspieler zum Sitzen im Büro.",
+    sections:[{label:"Übungen", items:[
+      {id:"hipreach", n:"Hüftbeuger-Ausfall + Reach", d:"vordere Linie · Arm nach oben-hinten", dose:"60–90 s/S"},
+      {id:"side", n:"Stehende Seitneige mit Armzug", d:"seitliche Linie · Füsse gekreuzt", dose:"60–90 s/S"},
+      {id:"chest", n:"Brustöffner an der Wand", d:"gegen die Sitzhaltung", dose:"60–90 s/S"}
+    ]}]},
+  stretchSo:{ name:"Stretching So", cat:"cool", group:"Mobilität & Spieltag", day:"So · Recovery", dur:"~8–10 Min", type:"check",
+    desc:"Hintere Kette + Rotation. Regeneration.",
+    purpose:"Lange Faszien-Dehnung in Ketten — leicht federnd statt starr verharren, links zuerst. Erst nach dem Fascia Ball dehnen. Sonntag-Fokus: hintere Kette zur Regeneration.",
+    sections:[{label:"Übungen", items:[
+      {id:"forward", n:"Stehende Vorbeuge (federnd)", d:"hintere Kette · Knie weich", dose:"60–90 s"},
+      {id:"dog", n:"Herabschauender Hund", d:"Ferse pumpen · Dorsalflexion", dose:"60–90 s"},
+      {id:"rot", n:"Kniender Rotations-Reach", d:"Spirale · aufdrehen", dose:"60–90 s/S"},
+      {id:"hip", n:"Half-Kneeling Hüftbeuger", d:"gegen den Bürotag", dose:"60–90 s/S"}
+    ]}]}
+};
+const UNIT_ORDER=["strengthA","strengthB","strengthC","strengthD","bike","speed","topup","recovery","mobility","feet","activation","fasciaball","stretchMi","stretchSo"];
+const GROUPS=["Kraft","Ausdauer & Speed","Mobilität & Spieltag"];
+const STRENGTH_FAMILY=["strengthA","strengthB","strengthC","strengthD"];
+
+/* ============ STORE (Cloud oder lokal) ============ */
+const LKEY="nico_log_v2";
+let DB={sessions:[]}, USER=null;
+
+function lsLoad(){try{return JSON.parse(localStorage.getItem(LKEY))||{sessions:[]}}catch(e){return{sessions:[]}}}
+function lsSave(){localStorage.setItem(LKEY,JSON.stringify(DB))}
+
+async function storeInit(){
+  if(!CLOUD){ DB=lsLoad(); return; }
+  const {data:{session}} = await sb.auth.getSession();
+  USER = session?session.user:null;
+  if(USER) await fetchAll();
+}
+async function fetchAll(){
+  const {data,error}=await sb.from('sessions').select('*').order('date',{ascending:false}).order('created_at',{ascending:false});
+  if(error){toast('Fehler beim Laden');console.error(error);return;}
+  DB.sessions=(data||[]).map(r=>({id:r.id,unit:r.unit,date:r.date,data:r.data}));
+}
+async function addSession(unit,data,date){
+  const rec={unit,date:date||todayISO(),data};
+  if(CLOUD&&USER){
+    const {data:ins,error}=await sb.from('sessions').insert({user_id:USER.id,unit:rec.unit,date:rec.date,data:rec.data}).select().single();
+    if(error){toast('Fehler beim Speichern');console.error(error);return false;}
+    DB.sessions.unshift({id:ins.id,unit:ins.unit,date:ins.date,data:ins.data});
+  }else{
+    DB.sessions.unshift({id:Date.now(),...rec});
+    lsSave();
+  }
+  DB.sessions.sort((a,b)=> a.date===b.date ? 0 : (a.date<b.date?1:-1));
+  return true;
+}
+async function removeSession(id){
+  if(CLOUD&&USER){
+    const {error}=await sb.from('sessions').delete().eq('id',id);
+    if(error){toast('Fehler beim Löschen');return false;}
+  }
+  DB.sessions=DB.sessions.filter(x=>x.id!==id);
+  if(!CLOUD)lsSave();
+  return true;
+}
+function unitSessions(unit){return DB.sessions.filter(x=>x.unit===unit)}
+function lastSession(unit){return unitSessions(unit)[0]||null}
+function doneOn(unit,date){return DB.sessions.some(x=>x.unit===unit&&x.date===date)}
+function todayISO(){return new Date().toISOString().slice(0,10)}
+function fmtDate(iso){const d=new Date(iso+"T00:00");return d.toLocaleDateString('de-CH',{weekday:'short',day:'2-digit',month:'2-digit'})}
+
+/* geteilter Kraft-Verlauf über A/B/C/Deload */
+function lastExData(exId){
+  const fam=UNITS[current]&&UNITS[current].family==="strength";
+  if(!fam){const ls=lastSession(current);return ls&&ls.data[exId]?ls.data[exId]:null;}
+  for(const s of DB.sessions){
+    if(STRENGTH_FAMILY.includes(s.unit)&&s.data&&s.data[exId])return s.data[exId];
+  }
+  return null;
+}
+
+/* ============ AUTH ============ */
+const authEl=document.getElementById('auth');
+async function doLogin(){
+  const email=document.getElementById('authEmail').value.trim();
+  const pass=document.getElementById('authPass').value;
+  const err=document.getElementById('authErr');err.textContent='';
+  const {data,error}=await sb.auth.signInWithPassword({email,password:pass});
+  if(error){err.textContent=error.message;return;}
+  USER=data.user;await fetchAll();showApp();
+}
+async function doRegister(){
+  const email=document.getElementById('authEmail').value.trim();
+  const pass=document.getElementById('authPass').value;
+  const err=document.getElementById('authErr');err.textContent='';
+  if(pass.length<6){err.textContent='Passwort: mindestens 6 Zeichen';return;}
+  const {data,error}=await sb.auth.signUp({email,password:pass});
+  if(error){err.textContent=error.message;return;}
+  if(data.session){USER=data.user;await fetchAll();showApp();}
+  else err.textContent='Bestätigungs-E-Mail gesendet — Posteingang prüfen, dann anmelden.';
+}
+async function doLogout(){
+  if(CLOUD)await sb.auth.signOut();
+  USER=null;DB={sessions:[]};showAuth();
+}
+async function importLocal(){
+  const old=lsLoad();
+  const legacy=(()=>{try{return JSON.parse(localStorage.getItem('nico_log_v1'))||{sessions:[]}}catch(e){return{sessions:[]}}})();
+  const all=[...old.sessions,...legacy.sessions];
+  if(!all.length){toast('Keine lokalen Daten gefunden');return;}
+  let n=0;
+  for(const s of all){
+    const {error}=await sb.from('sessions').insert({user_id:USER.id,unit:s.unit,date:s.date,data:s.data});
+    if(!error)n++;
+  }
+  await fetchAll();renderHome();toast(n+' Einträge importiert ✓');
+}
+
+/* ============ NAV ============ */
+const homeEl=document.getElementById('home'), sessEl=document.getElementById('session');
+const backBtn=document.getElementById('backBtn'), crumb=document.getElementById('crumb');
+let current=null, tab='log', fromRecovery=false;
+
+backBtn.onclick=()=>{ if(fromRecovery&&current!=='recovery'){openUnit('recovery');fromRecovery=false;} else goHome(); };
+function goHome(){current=null;fromRecovery=false;sessEl.classList.remove('active');homeEl.classList.add('active');
+  backBtn.style.display='none';crumb.textContent='Nico · Meisterschaft';renderHome();window.scrollTo(0,0)}
+function openUnit(key,viaRecovery){
+  if(viaRecovery)fromRecovery=true;
+  current=key;tab='log';homeEl.classList.remove('active');authEl.classList.remove('active');sessEl.classList.add('active');
+  backBtn.style.display='flex';crumb.textContent=UNITS[key].name;renderSession();window.scrollTo(0,0)}
+function showApp(){
+  authEl.classList.remove('active');homeEl.classList.add('active');
+  document.getElementById('syncBadge').textContent=CLOUD?'sync':'lokal';
+  document.getElementById('syncBadge').classList.toggle('on',CLOUD);
+  renderHome();
+}
+function showAuth(){homeEl.classList.remove('active');sessEl.classList.remove('active');authEl.classList.add('active');backBtn.style.display='none';}
+
+/* ============ HOME ============ */
+function renderHome(){
+  let html='';
+  GROUPS.forEach(g=>{
+    const gk=UNIT_ORDER.filter(k=>UNITS[k].group===g);
+    if(!gk.length)return;
+    html+=`<div class="section-label">${g}</div><div class="grid">${gk.map(unitCard).join('')}</div>`;
+  });
+  document.getElementById('phaseContent').innerHTML=html;
+  const f=document.getElementById('footInfo');
+  if(CLOUD&&USER){
+    f.innerHTML=`Angemeldet als ${USER.email} · <button onclick="doLogout()">Abmelden</button> · <button onclick="importLocal()">Lokale Daten importieren</button>`;
+  }else if(CLOUD){f.innerHTML='';}
+  else f.innerHTML='Lokal-Modus: Daten nur auf diesem Gerät.<br>Supabase-Keys oben im Code eintragen für Geräte-Sync.';
+}
+function catClass(u){return (u.cat==='cardio'||u.cat==='cool')?'card cool':'card'}
+function unitCard(key){
+  const u=UNITS[key], tag=u.md?`${u.day} · ${u.md}`:u.day;
+  return `<button class="${catClass(u)}" onclick="openUnit('${key}')">
+    <span class="tag">${tag}</span><h3>${u.name}</h3><div class="desc">${u.desc}</div><span class="chev">›</span></button>`;
+}
+
+/* ============ SESSION ============ */
+function renderSession(){
+  const u=UNITS[current];
+  let html=`<div class="s-head"><h2>${u.name}</h2>
+    <div class="s-sub">${u.day}${u.md?' · '+u.md:''} · ${u.dur}</div></div>
+    ${u.purpose?`<p class="d-purpose">${u.purpose}</p>`:''}
+    <div class="tabs">
+      <div class="tab ${tab==='log'?'on':''}" onclick="setTab('log')">Eintragen</div>
+      <div class="tab ${tab==='hist'?'on':''}" onclick="setTab('hist')">Verlauf</div>
+    </div>`;
+  html+= tab==='hist' ? renderHistory() :
+    (dateRow() + (
+     u.type==='strength'?renderStrength():
+     u.type==='cardio'?renderCardio():
+     u.type==='recovery'?renderRecovery():
+     renderCheckUnit()));
+  sessEl.innerHTML=html;
+  if(tab==='log'&&u.type==='recovery')bindRecoveryDate();
+}
+function setTab(t){tab=t;renderSession();window.scrollTo(0,0)}
+function dateRow(){return `<div class="daterow"><label>Datum</label><input type="date" id="sessDate" value="${todayISO()}" onchange="onDateChange()"></div>`}
+function sessDate(){const el=document.getElementById('sessDate');return el&&el.value?el.value:todayISO()}
+function onDateChange(){if(UNITS[current]&&UNITS[current].type==='recovery')refreshRecoveryLinks()}
+
+/* ---- STRENGTH: pro Satz Gewicht + Wdh; Soll (Sätze×Wdh, RPE, Pause) sichtbar ---- */
+function renderStrength(){
+  const u=UNITS[current]; let h='';
+  if(u.warmup)h+=`<div class="wu"><div class="wut">Aufwärmen · ~8 Min</div>${u.warmup.map(w=>`• ${w}`).join('<br>')}</div>`;
+  u.exercises.forEach(ex=>{
+    const ld=lastExData(ex.id);
+    h+=`<div class="ex" data-ex="${ex.id}" data-mode="${ex.mode}">
+      <div class="ex-top">
+        <div class="ex-name">${ex.name}${ex.tag?` <span style="color:var(--faint);font-size:12px;font-weight:400">· ${ex.tag}</span>`:''}</div>
+      </div>
+      <div class="ex-meta"><span class="m">Soll <b>${ex.sets}×${ex.reps}</b></span>
+        <span class="m">RPE <b>${ex.rpe}</b></span><span class="m">Pause <b>${ex.rest}</b></span></div>
+      ${lastLine(ex,ld)}`;
+    if(ex.mode==='check'){
+      h+=`<div class="checkrow" style="border-top:none;padding-top:4px">
+        <div class="cbox" data-check="${ex.id}" onclick="toggleCbox(this)">${tick()}</div>
+        <div class="cx"><div class="n">Erledigt</div></div></div>`;
+    }else{
+      for(let i=0;i<ex.sets;i++){
+        const sd=ld&&ld.sets&&ld.sets[i]?ld.sets[i]:{};
+        if(ex.mode==='sets'){
+          h+=`<div class="setrow"><span class="setno">S${i+1}</span><div class="fields">
+            <div class="field"><label>${ex.wlabel||'kg'}</label><input class="in" data-f="weight" inputmode="decimal" value="${sd.weight!=null?sd.weight:''}"></div>
+            <div class="field"><label>Wdh</label><input class="in" data-f="reps" inputmode="numeric" value="${sd.reps!=null?sd.reps:''}"></div>
+          </div></div>`;
+        }else{ /* reps only */
+          h+=`<div class="setrow"><span class="setno">S${i+1}</span><div class="fields">
+            <div class="field"><label>Wdh</label><input class="in" data-f="reps" inputmode="numeric" value="${sd.reps!=null?sd.reps:''}"></div>
+          </div></div>`;
+        }
+      }
+    }
+    h+=`</div>`;
+  });
+  return h+saveBar();
+}
+function lastLine(ex,ld){
+  if(!ld)return `<div class="last"><span class="lbl">Erste Einheit — noch keine Referenz</span></div>`;
+  let s='';
+  if(ex.mode==='check')s=ld.done?'erledigt':'—';
+  else if(ld.sets)s=ld.sets.filter(Boolean).map(st=>setSummary(ex,st)).filter(Boolean).join('  ·  ');
+  return `<div class="last"><span class="lbl">Letztes Mal:</span> <span class="num" style="color:var(--dim)">${s||'—'}</span></div>`;
+}
+function setSummary(ex,st){
+  if(ex.mode==='sets'){
+    if((st.weight==null||st.weight==='')&&(st.reps==null||st.reps===''))return'';
+    return `${st.weight!=null&&st.weight!==''?st.weight+'kg':''}${st.reps!=null&&st.reps!==''?'×'+st.reps:''}`;
+  }
+  if(ex.mode==='reps'){if(st.reps==null||st.reps==='')return'';return `${st.reps} Wdh`;}
+  return'';
+}
+
+/* ---- CARDIO (Bike) ---- */
+function renderCardio(){
+  const u=UNITS[current], last=lastSession(current), l=last?last.data:{};
+  const tgt=u.target.map(t=>`<span class="pill">${t[0]} <b>${t[1]}</b></span>`).join('');
+  const lastTxt=last?`<div class="last" style="margin:12px 2px 0"><span class="lbl">Letztes Mal:</span> <span class="num" style="color:var(--dim)">${cardioSummary(l)}</span></div>`:'';
+  const flds=u.fields.map(f=>`<div class="cf"><label>${f.label}</label><input id="c_${f.k}" inputmode="${f.im}" value="${l[f.k]||''}"></div>`).join('');
+  return `<div class="s-target">${tgt}</div>${lastTxt}
+    <div class="cardio-fields">${flds}</div>
+    <textarea class="note" id="c_note" placeholder="Notiz (optional)">${l.note||''}</textarea>${saveBar()}`;
+}
+function cardioSummary(d){
+  let s=`${d.duration||'–'} Min · Level ${d.level||'–'} · Ø ${d.avgHR||'–'} bpm`;
+  if(d.cadence)s+=` · ${d.cadence} UPM`;
+  return s;
+}
+
+/* ---- CHECK-EINHEIT (Mobility, Feet, Activation, Speed, Top Up, Fascia, Stretching) ---- */
+function renderCheckUnit(){
+  const u=UNITS[current];let h='';
+  u.sections.forEach(sec=>{
+    if(sec.label)h+=`<div class="section-label" style="margin-top:16px">${sec.label}</div>`;
+    h+=`<div class="ex" style="padding:6px 15px">`;
+    sec.items.forEach(it=>{
+      h+=`<div class="checkrow">
+        <div class="cbox" data-check="${it.id}" onclick="toggleCbox(this)">${tick()}</div>
+        <div class="cx"><div class="n">${it.n}</div>${it.d?`<div class="d">${it.d}</div>`:''}</div>
+        ${it.dose?`<span class="dose">${it.dose}</span>`:''}</div>`;
+    });
+    h+=`</div>`;
+  });
+  if(u.ohs)h+=`<textarea class="note" id="ohs_note" placeholder="OHS-Notiz: Ferse am Boden? Oberkörper aufrecht? Besser als letztes Mal?"></textarea>`;
+  h+=`<div class="actions"><button class="btn primary ${(u.cat==='cardio'||u.cat==='cool')?'cool':''}" onclick="checkAllAndSave()">Alle abhaken &amp; speichern</button>
+      <button class="btn ghost" onclick="doSave()">Speichern</button></div>`;
+  return h;
+}
+
+/* ---- RECOVERY: eigene Punkte + Verlinkung zu den Einheiten ---- */
+function renderRecovery(){
+  const u=UNITS[current];let h='';
+  h+=`<div class="ex" style="padding:6px 15px">`;
+  u.own.forEach(it=>{
+    h+=`<div class="checkrow">
+      <div class="cbox" data-check="${it.id}" onclick="toggleCbox(this)">${tick()}</div>
+      <div class="cx"><div class="n">${it.n}</div>${it.d?`<div class="d">${it.d}</div>`:''}</div></div>`;
+  });
+  h+=`</div><div class="section-label">Dazu gehören — antippen öffnet die Einheit</div><div class="ex" style="padding:6px 15px" id="recLinks"></div>`;
+  h+=`<div class="actions"><button class="btn primary cool" onclick="doSave()">Recovery speichern</button></div>
+      <p class="lede" style="text-align:center">Die verlinkten Einheiten werden dort eingetragen und zählen fürs gewählte Datum automatisch als erledigt.</p>`;
+  return h;
+}
+function refreshRecoveryLinks(){
+  const u=UNITS[current];if(!u||u.type!=='recovery')return;
+  const d=sessDate();
+  const el=document.getElementById('recLinks');if(!el)return;
+  el.innerHTML=u.links.map(k=>{
+    const lu=UNITS[k], done=doneOn(k,d);
+    return `<div class="checkrow" onclick="openUnit('${k}',true)" style="cursor:pointer">
+      <div class="cbox ${done?'on':''}">${tick()}</div>
+      <div class="cx"><div class="n">${lu.name}</div><div class="d">${done?'erledigt am '+fmtDate(d):lu.dur+' · '+lu.desc}</div></div>
+      <span class="chev">›</span></div>`;
+  }).join('');
+}
+function bindRecoveryDate(){refreshRecoveryLinks()}
+
+/* ============ SHARED ============ */
+function tick(){return '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#04210f" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>'}
+function saveBar(){const cool=(UNITS[current].cat==='cardio'||UNITS[current].cat==='cool')?'cool':'';
+  return `<div class="actions"><button class="btn primary ${cool}" onclick="doSave()">Session speichern</button></div>`;}
+function toggleCbox(el){el.classList.toggle('on');event&&event.stopPropagation&&event.stopPropagation()}
+
+/* ============ SAVE ============ */
+async function doSave(){
+  const u=UNITS[current];
+  if(u.type==='strength')await saveStrength();
+  else if(u.type==='cardio')await saveCardio();
+  else if(u.type==='recovery')await saveRecovery();
+  else await saveCheck();
+}
+async function saveStrength(){
+  const u=UNITS[current],data={};
+  u.exercises.forEach(ex=>{
+    const exEl=sessEl.querySelector(`.ex[data-ex="${ex.id}"]`);
+    if(ex.mode==='check'){data[ex.id]={done:exEl.querySelector('[data-check]').classList.contains('on')};return;}
+    const rec={mode:ex.mode,sets:[]};
+    exEl.querySelectorAll('.setrow').forEach(row=>{
+      const st={};let any=false;
+      row.querySelectorAll('input[data-f]').forEach(inp=>{const f=inp.getAttribute('data-f');const v=inp.value.trim();st[f]=v===''?null:v;if(v!=='')any=true;});
+      rec.sets.push(any?st:null);
+    });
+    data[ex.id]=rec;
+  });
+  if(await addSession(current,data,sessDate())){toast('Krafteinheit gespeichert ✓');goHome();}
+}
+async function saveCardio(){
+  const u=UNITS[current],data={};
+  u.fields.forEach(f=>{const el=document.getElementById('c_'+f.k);data[f.k]=el?el.value.trim():'';});
+  const n=document.getElementById('c_note');data.note=n?n.value.trim():'';
+  if(await addSession(current,data,sessDate())){toast('Gespeichert ✓');goHome();}
+}
+async function saveCheck(){
+  const data={checks:{}};
+  sessEl.querySelectorAll('[data-check]').forEach(c=>data.checks[c.getAttribute('data-check')]=c.classList.contains('on'));
+  const ohs=document.getElementById('ohs_note');if(ohs&&ohs.value.trim())data.ohs=ohs.value.trim();
+  const d=sessDate();
+  if(await addSession(current,data,d)){
+    toast('Gespeichert ✓');
+    if(fromRecovery){fromRecovery=false;openUnit('recovery');}
+    else goHome();
+  }
+}
+async function saveRecovery(){
+  const data={checks:{}};
+  sessEl.querySelectorAll('#session .ex:first-of-type [data-check]').forEach(c=>data.checks[c.getAttribute('data-check')]=c.classList.contains('on'));
+  if(await addSession(current,data,sessDate())){toast('Recovery gespeichert ✓');goHome();}
+}
+function checkAllAndSave(){sessEl.querySelectorAll('[data-check]').forEach(c=>c.classList.add('on'));doSave();}
+
+/* ============ HISTORY ============ */
+function renderHistory(){
+  const u=UNITS[current];
+  const list=u.family==="strength"
+    ? DB.sessions.filter(x=>STRENGTH_FAMILY.includes(x.unit)).slice(0,6)
+    : unitSessions(current).slice(0,6);
+  if(!list.length)return `<div class="empty">Noch keine Einträge.<br>Trag deine erste Einheit ein.</div>`;
+  return list.map(s=>`<div class="hitem">
+      <div class="hd"><span class="date">${fmtDate(s.date)}${u.family==="strength"&&UNITS[s.unit]?` · ${UNITS[s.unit].name}`:''}</span>
+        <button class="del" onclick="delSession('${s.id}')">löschen</button></div>
+      ${historyLines(UNITS[s.unit]||u,s.data)}</div>`).join('');
+}
+function historyLines(u,d){
+  if(u.type==='strength'){
+    return (u.exercises||[]).map(ex=>{
+      const ld=d[ex.id];if(!ld)return'';
+      if(ex.mode==='check')return `<div class="line"><span class="k">${ex.name}:</span> ${ld.done?'erledigt':'—'}</div>`;
+      if(!ld.sets)return'';
+      const parts=ld.sets.filter(Boolean).map(st=>setSummary(ex,st)).filter(Boolean);
+      if(!parts.length)return'';
+      return `<div class="line"><span class="k">${ex.name}:</span> <span class="num">${parts.join(' · ')}</span></div>`;
+    }).filter(Boolean).join('')||`<div class="line">—</div>`;
+  }
+  if(u.type==='cardio')return `<div class="line"><span class="num">${cardioSummary(d)}</span></div>${d.note?`<div class="line">${d.note}</div>`:''}`;
+  const done=Object.values(d.checks||{}).filter(Boolean).length,tot=Object.keys(d.checks||{}).length;
+  return `<div class="line"><span class="num">${done}/${tot} abgehakt</span></div>${d.ohs?`<div class="line"><span class="k">OHS:</span> ${d.ohs}</div>`:''}`;
+}
+async function delSession(id){
+  if(!confirm('Diese Einheit löschen?'))return;
+  /* IDs aus Supabase sind Strings (uuid), lokale sind Zahlen */
+  const key=DB.sessions.find(x=>String(x.id)===String(id));
+  if(key&&await removeSession(key.id))renderSession();
+}
+
+/* ============ UTIL ============ */
+let toastT;
+function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('show'),1800)}
+
+/* ============ INIT ============ */
+(async function(){
+  await storeInit();
+  if(CLOUD&&!USER)showAuth();
+  else showApp();
+})();
+</script>
+</body>
+</html>
