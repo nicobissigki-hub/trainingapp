@@ -217,8 +217,8 @@
    SUPABASE — hier eintragen (Dashboard → Settings → API).
    Leer lassen = App läuft lokal (localStorage, nur dieses Gerät).
    ================================================================ */
-const SUPABASE_URL = "";        // z.B. "https://abcdefgh.supabase.co"
-const SUPABASE_ANON_KEY = "";   // der lange "anon public" Key
+const SUPABASE_URL = "https://hewdrcdhuqvahpkkdsjj.supabase.co";        // z.B. "https://abcdefgh.supabase.co"
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhld2RyY2RodXF2YWhwa2tkc2pqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM4NTUyNzgsImV4cCI6MjA5OTQzMTI3OH0.XrLX1MqcxprDayYC2fYgj2E7szhmba-Q3nTLHrdTdXQ";   // der lange "anon public" Key
 
 const CLOUD = !!(SUPABASE_URL && SUPABASE_ANON_KEY);
 const sb = CLOUD ? supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
